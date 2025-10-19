@@ -1763,6 +1763,10 @@ td .input.items-center.space-x-2 button:hover, .input.items-center.space-x-2 but
   padding-top: 2rem;
 }
 
+.pb-2 {
+  padding-bottom: .5rem;
+}
+
 .text-left {
   text-align: left;
 }

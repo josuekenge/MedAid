@@ -1,10 +1,12 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { formatDate, formatTime } from '@/lib/utils';
-import { mockVisits, mockPatients, mockNurses, mockIncidents } from '@/lib/mock-data';
+import { visitsApi, patientsApi, nursesApi } from '@/services/api';
+import { Visit, Patient, Nurse } from '@/types';
 import { 
   Users, 
   UserCheck, 
@@ -18,19 +20,51 @@ import {
 } from 'lucide-react';
 
 export default function DashboardPage() {
-  // Debug logging to ensure data is loaded
-  console.log('Dashboard loaded with data:', {
-    visits: mockVisits?.length || 0,
-    patients: mockPatients?.length || 0,
-    nurses: mockNurses?.length || 0,
-    incidents: mockIncidents?.length || 0
-  });
+  const [visits, setVisits] = useState<Visit[]>([]);
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [nurses, setNurses] = useState<Nurse[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Safe data access with fallbacks
-  const visits = mockVisits || [];
-  const patients = mockPatients || [];
-  const nurses = mockNurses || [];
-  const incidents = mockIncidents || [];
+  useEffect(() => {
+    const loadDashboardData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Load all data in parallel
+        const [visitsResponse, patientsResponse, nursesResponse] = await Promise.all([
+          visitsApi.getVisits({ limit: 5 }), // Get recent 5 visits
+          patientsApi.getPatients({ limit: 5 }), // Get recent 5 patients
+          nursesApi.getNurses({ limit: 5 }), // Get recent 5 nurses
+        ]);
+
+        setVisits(visitsResponse.data);
+        setPatients(patientsResponse.data);
+        setNurses(nursesResponse.data);
+
+        console.log('Dashboard loaded with real data:', {
+          visits: visitsResponse.data.length,
+          patients: patientsResponse.data.length,
+          nurses: nursesResponse.data.length,
+        });
+      } catch (err) {
+        console.error('Error loading dashboard data:', err);
+        setError('Failed to load dashboard data');
+        // Fallback to empty arrays
+        setVisits([]);
+        setPatients([]);
+        setNurses([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadDashboardData();
+  }, []);
+
+  // Mock incidents for now (we'll create incidents API later)
+  const incidents: any[] = [];
 
   // Helper function to safely get patient name
   const getPatientName = (patientId: string) => {
@@ -88,6 +122,52 @@ export default function DashboardPage() {
     });
   } catch (error) {
     console.error('Error processing dashboard data:', error);
+  }
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+            <p className="text-gray-600 mt-1">Loading dashboard data...</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i} className="animate-pulse">
+              <CardHeader className="pb-2">
+                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                <div className="h-6 bg-gray-200 rounded w-1/2"></div>
+              </CardHeader>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+            <p className="text-red-600 mt-1">{error}</p>
+          </div>
+        </div>
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="p-6">
+            <div className="flex items-center space-x-2">
+              <AlertTriangle className="h-5 w-5 text-red-600" />
+              <p className="text-red-800">Failed to load dashboard data. Please try refreshing the page.</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (
