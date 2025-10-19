@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { formatDate, formatTime } from '@/lib/utils';
-import { visitsApi, patientsApi, nursesApi } from '@/src/services/api';
+import { visitsApi, patientsApi, nursesApi } from '../../../src/services/api';
 import { Visit, Patient, Nurse } from '@/types';
 import { 
   Users, 
