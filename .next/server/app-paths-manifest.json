@@ -1,12 +1,1 @@
-{
-  "/(app)/billing/page": "app/(app)/billing/page.js",
-  "/(app)/certifications/page": "app/(app)/certifications/page.js",
-  "/(app)/dashboard/page": "app/(app)/dashboard/page.js",
-  "/(app)/incidents/page": "app/(app)/incidents/page.js",
-  "/(app)/nurses/page": "app/(app)/nurses/page.js",
-  "/(app)/patients/page": "app/(app)/patients/page.js",
-  "/(app)/schedule/page": "app/(app)/schedule/page.js",
-  "/(app)/services/page": "app/(app)/services/page.js",
-  "/(app)/visits/page": "app/(app)/visits/page.js",
-  "/page": "app/page.js"
-}
+{}

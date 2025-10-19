@@ -516,6 +516,35 @@ button[class*="h-8"][class*="px-3"]:hover {
   background-color: #e0f2fe !important;
 }
 
+button:not([class*="primary"]):not([class*="destructive"]):not([class*="red"]) {
+  color: #0369a1 !important;
+  background-color: rgba(0, 0, 0, 0) !important;
+}
+
+button:not([class*="primary"]):not([class*="destructive"]):not([class*="red"]):hover {
+  color: #0c4a6e !important;
+  background-color: #e0f2fe !important;
+}
+
+button svg {
+  color: #0369a1 !important;
+}
+
+button:hover svg {
+  color: #0c4a6e !important;
+}
+
+td .flex.items-center.space-x-2 button, .flex.items-center.space-x-2 button, div[class*="flex"][class*="items-center"][class*="space-x-2"] button {
+  color: #0369a1 !important;
+  background-color: rgba(0, 0, 0, 0) !important;
+  border: none !important;
+}
+
+td .flex.items-center.space-x-2 button:hover, .flex.items-center.space-x-2 button:hover, div[class*="flex"][class*="items-center"][class*="space-x-2"] button:hover {
+  color: #0c4a6e !important;
+  background-color: #e0f2fe !important;
+}
+
 .card {
   --tw-bg-opacity: 1;
   background-color: rgba(255, 255, 255, var(--tw-bg-opacity, 1));
@@ -532,6 +561,17 @@ button[class*="h-8"][class*="px-3"]:hover {
 }
 
 .input.items-center.space-x-2 button:hover {
+  color: #0c4a6e;
+  background-color: #e0f2fe;
+}
+
+td .input.items-center.space-x-2 button, .input.items-center.space-x-2 button {
+  color: #0369a1;
+  background-color: rgba(0, 0, 0, 0);
+  border: none;
+}
+
+td .input.items-center.space-x-2 button:hover, .input.items-center.space-x-2 button:hover {
   color: #0c4a6e;
   background-color: #e0f2fe;
 }
@@ -2168,6 +2208,17 @@ button[class*="h-8"][class*="px-3"]:hover {
     color: #0c4a6e !important;
     background-color: #e0f2fe !important;
   }
+
+  td .md\:flex.items-center.space-x-2 button, .md\:flex.items-center.space-x-2 button {
+    color: #0369a1 !important;
+    background-color: rgba(0, 0, 0, 0) !important;
+    border: none !important;
+  }
+
+  td .md\:flex.items-center.space-x-2 button:hover, .md\:flex.items-center.space-x-2 button:hover {
+    color: #0c4a6e !important;
+    background-color: #e0f2fe !important;
+  }
 }
 
 @media (min-width: 1024px) {
@@ -2177,6 +2228,17 @@ button[class*="h-8"][class*="px-3"]:hover {
   }
 
   .lg\:flex.items-center.space-x-2 button:hover {
+    color: #0c4a6e !important;
+    background-color: #e0f2fe !important;
+  }
+
+  td .lg\:flex.items-center.space-x-2 button, .lg\:flex.items-center.space-x-2 button {
+    color: #0369a1 !important;
+    background-color: rgba(0, 0, 0, 0) !important;
+    border: none !important;
+  }
+
+  td .lg\:flex.items-center.space-x-2 button:hover, .lg\:flex.items-center.space-x-2 button:hover {
     color: #0c4a6e !important;
     background-color: #e0f2fe !important;
   }

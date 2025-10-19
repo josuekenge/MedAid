@@ -83,6 +83,42 @@
     color: #0c4a6e !important;
   }
 
+  /* NUCLEAR OPTION: Force ALL buttons to be blue unless they're primary or destructive */
+  button:not([class*="primary"]):not([class*="destructive"]):not([class*="red"]) {
+    color: #0369a1 !important;
+    background-color: transparent !important;
+  }
+
+  button:not([class*="primary"]):not([class*="destructive"]):not([class*="red"]):hover {
+    background-color: #e0f2fe !important;
+    color: #0c4a6e !important;
+  }
+
+  /* Target all buttons with icons specifically */
+  button svg {
+    color: #0369a1 !important;
+  }
+
+  button:hover svg {
+    color: #0c4a6e !important;
+  }
+
+  /* Target specific action button containers */
+  td .flex.items-center.space-x-2 button,
+  .flex.items-center.space-x-2 button,
+  div[class*="flex"][class*="items-center"][class*="space-x-2"] button {
+    color: #0369a1 !important;
+    background-color: transparent !important;
+    border: none !important;
+  }
+
+  td .flex.items-center.space-x-2 button:hover,
+  .flex.items-center.space-x-2 button:hover,
+  div[class*="flex"][class*="items-center"][class*="space-x-2"] button:hover {
+    background-color: #e0f2fe !important;
+    color: #0c4a6e !important;
+  }
+
   .card {
     @apply rounded-2xl bg-white p-6 shadow-soft;
   }
