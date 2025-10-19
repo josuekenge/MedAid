@@ -1,0 +1,64 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --font-inter: 'Inter', system-ui, sans-serif;
+  }
+
+  * {
+    @apply border-gray-200;
+  }
+
+  body {
+    @apply bg-gray-50 text-gray-900;
+  }
+
+  /* Focus styles for accessibility */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-primary-500 ring-offset-2 ring-offset-white;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center rounded-2xl px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50;
+  }
+
+  .btn-primary {
+    @apply bg-primary-600 text-white hover:bg-primary-700 active:bg-primary-800;
+    background: linear-gradient(to right, #0284c7, #0369a1) !important;
+    color: white !important;
+  }
+
+  .btn-secondary {
+    @apply bg-primary-100 text-primary-900 hover:bg-primary-200 active:bg-primary-300;
+  }
+
+  .btn-outline {
+    @apply border border-primary-600 bg-primary-50 text-primary-700 hover:bg-primary-100 active:bg-primary-200;
+  }
+
+  /* Force button styles to override any conflicting CSS */
+  button[class*="bg-primary-600"] {
+    background: linear-gradient(to right, #0284c7, #0369a1) !important;
+    color: white !important;
+  }
+
+  button[class*="text-primary-700"] {
+    color: #0369a1 !important;
+  }
+
+  .card {
+    @apply rounded-2xl bg-white p-6 shadow-soft;
+  }
+
+  .input {
+    @apply flex h-10 w-full rounded-2xl border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-500 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .label {
+    @apply text-sm font-medium text-gray-700;
+  }
+}
