@@ -61,7 +61,8 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       background: 'linear-gradient(to right, #0284c7, #0369a1)',
       color: 'white'
     } : variant === 'ghost' ? {
-      color: '#0369a1'
+      color: '#0369a1 !important',
+      backgroundColor: 'transparent'
     } : {};
 
     return (

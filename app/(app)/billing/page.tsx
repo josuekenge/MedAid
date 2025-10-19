@@ -270,10 +270,10 @@ export default function BillingPage() {
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex items-center space-x-2">
-                          <Button variant="outline" size="sm" onClick={() => handleViewBillingItem(item)}>
+                          <Button variant="ghost" size="sm" onClick={() => handleViewBillingItem(item)}>
                             <Eye className="h-4 w-4" />
                           </Button>
-                          <Button variant="outline" size="sm" onClick={() => handleEditBillingItem(item)}>
+                          <Button variant="ghost" size="sm" onClick={() => handleEditBillingItem(item)}>
                             <Edit className="h-4 w-4" />
                           </Button>
                           <Button variant="destructive" size="sm" onClick={() => handleDeleteBillingItem(item)}>

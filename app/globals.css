@@ -50,6 +50,39 @@
     color: #0369a1 !important;
   }
 
+  /* Force ghost buttons to be blue */
+  button[class*="ghost"] {
+    color: #0369a1 !important;
+    background-color: transparent !important;
+  }
+
+  button[class*="ghost"]:hover {
+    background-color: #e0f2fe !important;
+    color: #0c4a6e !important;
+  }
+
+  /* Force all action buttons in tables to be blue */
+  .flex.items-center.space-x-2 button {
+    color: #0369a1 !important;
+    background-color: transparent !important;
+  }
+
+  .flex.items-center.space-x-2 button:hover {
+    background-color: #e0f2fe !important;
+    color: #0c4a6e !important;
+  }
+
+  /* Force small ghost buttons specifically */
+  button[class*="h-8"][class*="px-3"] {
+    color: #0369a1 !important;
+    background-color: transparent !important;
+  }
+
+  button[class*="h-8"][class*="px-3"]:hover {
+    background-color: #e0f2fe !important;
+    color: #0c4a6e !important;
+  }
+
   .card {
     @apply rounded-2xl bg-white p-6 shadow-soft;
   }

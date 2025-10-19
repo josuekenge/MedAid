@@ -477,6 +477,45 @@ body {
   }
 }
 
+button[class*="bg-primary-600"] {
+  color: #fff !important;
+  background: linear-gradient(to right, #0284c7, #0369a1) !important;
+}
+
+button[class*="text-primary-700"] {
+  color: #0369a1 !important;
+}
+
+button[class*="ghost"] {
+  color: #0369a1 !important;
+  background-color: rgba(0, 0, 0, 0) !important;
+}
+
+button[class*="ghost"]:hover {
+  color: #0c4a6e !important;
+  background-color: #e0f2fe !important;
+}
+
+.flex.items-center.space-x-2 button {
+  color: #0369a1 !important;
+  background-color: rgba(0, 0, 0, 0) !important;
+}
+
+.flex.items-center.space-x-2 button:hover {
+  color: #0c4a6e !important;
+  background-color: #e0f2fe !important;
+}
+
+button[class*="h-8"][class*="px-3"] {
+  color: #0369a1 !important;
+  background-color: rgba(0, 0, 0, 0) !important;
+}
+
+button[class*="h-8"][class*="px-3"]:hover {
+  color: #0c4a6e !important;
+  background-color: #e0f2fe !important;
+}
+
 .card {
   --tw-bg-opacity: 1;
   background-color: rgba(255, 255, 255, var(--tw-bg-opacity, 1));
@@ -485,6 +524,16 @@ body {
   box-shadow: var(--tw-ring-offset-shadow, 0 0 rgba(0, 0, 0, 0)), var(--tw-ring-shadow, 0 0 rgba(0, 0, 0, 0)), var(--tw-shadow);
   border-radius: 1rem;
   padding: 1.5rem;
+}
+
+.input.items-center.space-x-2 button {
+  color: #0369a1;
+  background-color: rgba(0, 0, 0, 0);
+}
+
+.input.items-center.space-x-2 button:hover {
+  color: #0c4a6e;
+  background-color: #e0f2fe;
 }
 
 .input {
@@ -1779,6 +1828,11 @@ body {
   letter-spacing: .1em;
 }
 
+.\!text-primary-700 {
+  --tw-text-opacity: 1 !important;
+  color: rgba(3, 105, 161, var(--tw-text-opacity, 1)) !important;
+}
+
 .\!text-white {
   --tw-text-opacity: 1 !important;
   color: rgba(255, 255, 255, var(--tw-text-opacity, 1)) !important;
@@ -1974,11 +2028,6 @@ body {
   color: rgba(133, 77, 14, var(--tw-text-opacity, 1));
 }
 
-.\!text-primary-700 {
-  --tw-text-opacity: 1 !important;
-  color: rgba(3, 105, 161, var(--tw-text-opacity, 1)) !important;
-}
-
 .underline-offset-4 {
   text-underline-offset: 4px;
 }
@@ -2109,6 +2158,30 @@ body {
   transition-timing-function: cubic-bezier(.4, 0, .2, 1);
 }
 
+@media (min-width: 768px) {
+  .md\:flex.items-center.space-x-2 button {
+    color: #0369a1 !important;
+    background-color: rgba(0, 0, 0, 0) !important;
+  }
+
+  .md\:flex.items-center.space-x-2 button:hover {
+    color: #0c4a6e !important;
+    background-color: #e0f2fe !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  .lg\:flex.items-center.space-x-2 button {
+    color: #0369a1 !important;
+    background-color: rgba(0, 0, 0, 0) !important;
+  }
+
+  .lg\:flex.items-center.space-x-2 button:hover {
+    color: #0c4a6e !important;
+    background-color: #e0f2fe !important;
+  }
+}
+
 .placeholder\:text-gray-500::placeholder {
   --tw-text-opacity: 1;
   color: rgba(107, 114, 128, var(--tw-text-opacity, 1));
@@ -2117,6 +2190,11 @@ body {
 .hover\:border-primary-700:hover {
   --tw-border-opacity: 1;
   border-color: rgba(3, 105, 161, var(--tw-border-opacity, 1));
+}
+
+.hover\:\!bg-primary-100:hover {
+  --tw-bg-opacity: 1 !important;
+  background-color: rgba(224, 242, 254, var(--tw-bg-opacity, 1)) !important;
 }
 
 .hover\:bg-blue-700:hover {
@@ -2179,11 +2257,6 @@ body {
   background-color: rgba(161, 98, 7, var(--tw-bg-opacity, 1));
 }
 
-.hover\:\!bg-primary-100:hover {
-  --tw-bg-opacity: 1 !important;
-  background-color: rgba(224, 242, 254, var(--tw-bg-opacity, 1)) !important;
-}
-
 .hover\:\!from-primary-700:hover {
   --tw-gradient-from: #0369a1 var(--tw-gradient-from-position) !important;
   --tw-gradient-to: rgba(3, 105, 161, 0) var(--tw-gradient-to-position) !important;
@@ -2192,6 +2265,11 @@ body {
 
 .hover\:\!to-primary-800:hover {
   --tw-gradient-to: #075985 var(--tw-gradient-to-position) !important;
+}
+
+.hover\:\!text-primary-900:hover {
+  --tw-text-opacity: 1 !important;
+  color: rgba(12, 74, 110, var(--tw-text-opacity, 1)) !important;
 }
 
 .hover\:text-blue-700:hover {
@@ -2219,19 +2297,9 @@ body {
   color: rgba(2, 132, 199, var(--tw-text-opacity, 1));
 }
 
-.hover\:text-primary-900:hover {
-  --tw-text-opacity: 1;
-  color: rgba(12, 74, 110, var(--tw-text-opacity, 1));
-}
-
 .hover\:text-white:hover {
   --tw-text-opacity: 1;
   color: rgba(255, 255, 255, var(--tw-text-opacity, 1));
-}
-
-.hover\:\!text-primary-900:hover {
-  --tw-text-opacity: 1 !important;
-  color: rgba(12, 74, 110, var(--tw-text-opacity, 1)) !important;
 }
 
 .hover\:underline:hover {
