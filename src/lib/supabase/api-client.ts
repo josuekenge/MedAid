@@ -1,155 +1,80 @@
-import { createClient } from './client';
+import { supabase } from './client';
 import { Database } from './types';
 
-type Tables = Database['public']['Tables'];
+type TableName = keyof Database['public']['Tables'];
 
-export class SupabaseApiClient {
-  private supabase = createClient();
-
-  // Generic CRUD operations
-  async get<T extends keyof Tables>(
-    table: T,
-    filters?: Record<string, any>
-  ): Promise<{ data: Tables[T]['Row'][] | null; error: any }> {
-    let query = this.supabase.from(table).select('*');
-    
+export const supabaseApiClient = {
+  async get<T>(table: TableName, filters?: Record<string, any>): Promise<T[]> {
+    let query = supabase.from(table).select('*');
     if (filters) {
       Object.entries(filters).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          query = query.eq(key, value);
-        }
+        query = query.eq(key, value);
       });
     }
+    const { data, error } = await query;
+    if (error) throw error;
+    return data as T[];
+  },
 
-    return await query;
-  }
+  async getById<T>(table: TableName, id: string): Promise<T | null> {
+    const { data, error } = await supabase.from(table).select('*').eq('id', id).single();
+    if (error && error.code !== 'PGRST116') throw error; // PGRST116 is "No rows found"
+    return data as T | null;
+  },
 
-  async getById<T extends keyof Tables>(
-    table: T,
-    id: string
-  ): Promise<{ data: Tables[T]['Row'] | null; error: any }> {
-    return await this.supabase
-      .from(table)
-      .select('*')
-      .eq('id', id)
-      .single();
-  }
+  async create<T>(table: TableName, data: Partial<T>): Promise<T> {
+    const { data: newData, error } = await supabase.from(table).insert(data).select().single();
+    if (error) throw error;
+    return newData as T;
+  },
 
-  async create<T extends keyof Tables>(
-    table: T,
-    data: Tables[T]['Insert']
-  ): Promise<{ data: Tables[T]['Row'] | null; error: any }> {
-    return await this.supabase
-      .from(table)
-      .insert(data)
-      .select()
-      .single();
-  }
+  async update<T>(table: TableName, id: string, data: Partial<T>): Promise<T> {
+    const { data: updatedData, error } = await supabase.from(table).update(data).eq('id', id).select().single();
+    if (error) throw error;
+    return updatedData as T;
+  },
 
-  async update<T extends keyof Tables>(
-    table: T,
-    id: string,
-    data: Tables[T]['Update']
-  ): Promise<{ data: Tables[T]['Row'] | null; error: any }> {
-    return await this.supabase
-      .from(table)
-      .update(data)
-      .eq('id', id)
-      .select()
-      .single();
-  }
+  async delete(table: TableName, id: string): Promise<void> {
+    const { error } = await supabase.from(table).delete().eq('id', id);
+    if (error) throw error;
+  },
 
-  async delete<T extends keyof Tables>(
-    table: T,
-    id: string
-  ): Promise<{ error: any }> {
-    return await this.supabase
-      .from(table)
-      .delete()
-      .eq('id', id);
-  }
-
-  // Search functionality
-  async search<T extends keyof Tables>(
-    table: T,
-    searchTerm: string,
-    searchColumns: string[]
-  ): Promise<{ data: Tables[T]['Row'][] | null; error: any }> {
-    let query = this.supabase.from(table).select('*');
-    
-    // Use textSearch for full-text search if available, otherwise use ilike
-    const searchConditions = searchColumns.map(column => `${column}.ilike.%${searchTerm}%`);
-    
-    if (searchConditions.length > 0) {
-      query = query.or(searchConditions.join(','));
-    }
-
-    return await query;
-  }
-
-  // Pagination
-  async getPaginated<T extends keyof Tables>(
-    table: T,
-    page: number = 1,
-    limit: number = 10,
+  async getPaginated<T>(
+    table: TableName,
+    page: number,
+    limit: number,
     filters?: Record<string, any>
-  ): Promise<{ 
-    data: Tables[T]['Row'][] | null; 
-    error: any;
-    count: number | null;
-    totalPages: number;
-  }> {
+  ): Promise<{ data: T[] | null; error: any; count: number | null; totalPages: number | null }> {
     const offset = (page - 1) * limit;
-    
-    let query = this.supabase
-      .from(table)
-      .select('*', { count: 'exact' });
-    
+    let query = supabase.from(table).select('*', { count: 'exact' });
+
     if (filters) {
       Object.entries(filters).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
+        if (key !== 'page' && key !== 'limit' && value) {
           query = query.eq(key, value);
         }
       });
     }
 
-    const result = await query
-      .range(offset, offset + limit - 1);
+    const { data, error, count } = await query.range(offset, offset + limit - 1);
 
-    const totalPages = result.count ? Math.ceil(result.count / limit) : 0;
+    if (error) {
+      return { data: null, error, count: null, totalPages: null };
+    }
 
-    return {
-      ...result,
-      totalPages
-    };
-  }
+    const totalPages = count ? Math.ceil(count / limit) : 0;
+    return { data: data as T[], error: null, count, totalPages };
+  },
 
-  // Real-time subscriptions
-  subscribe<T extends keyof Tables>(
-    table: T,
-    callback: (payload: any) => void,
-    filter?: string
-  ) {
-    let subscription = this.supabase
-      .channel(`${table}_changes`)
-      .on('postgres_changes', 
-        { 
-          event: '*', 
-          schema: 'public', 
-          table: table as string,
-          filter: filter
-        }, 
-        callback
-      )
-      .subscribe();
+  async search<T>(table: TableName, searchTerm: string, fields: string[]): Promise<{ data: T[] | null; error: any }> {
+    let query = supabase.from(table).select('*');
 
-    return subscription;
-  }
+    if (searchTerm && fields.length > 0) {
+      const searchConditions = fields.map(field => `${field}.ilike.%${searchTerm}%`).join(',');
+      query = query.or(searchConditions);
+    }
 
-  // Get the Supabase client for direct use
-  getClient() {
-    return this.supabase;
-  }
-}
-
-export const supabaseApiClient = new SupabaseApiClient();
+    const { data, error } = await query;
+    return { data: data as T[], error };
+  },
+};

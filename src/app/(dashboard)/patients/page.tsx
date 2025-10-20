@@ -1,21 +1,23 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Modal } from '@/components/ui/modal';
 import { PatientForm } from '@/components/forms/patient-form';
-import { mockPatients } from '@/lib/mock-data';
+import { patientsApi } from '@/services/api';
 import { formatDate, calculateAge } from '@/lib/utils';
-import { 
-  Users, 
-  Search, 
-  Plus, 
-  Eye, 
-  Edit, 
-  MessageSquare, 
+import { Patient } from '@/types';
+import toast from 'react-hot-toast';
+import {
+  Users,
+  Search,
+  Plus,
+  Eye,
+  Edit,
+  MessageSquare,
   X,
   Phone,
   Mail,
@@ -30,20 +32,80 @@ export default function PatientsPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Use mock data instead of API calls
-  const patients = mockPatients;
-  const isLoading = false;
+  // Load patients from Supabase
+  useEffect(() => {
+    loadPatients();
+  }, []);
+
+  const loadPatients = async () => {
+    try {
+      setIsLoading(true);
+      console.log('[Patients] Loading patients from Supabase...');
+      const response = await patientsApi.getPatients();
+      console.log('[Patients] Loaded', response.data.length, 'patients:', response.data);
+      setPatients(response.data);
+    } catch (error) {
+      console.error('[Patients] Error loading patients:', error);
+      toast.error('Failed to load patients');
+      setPatients([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleAddPatient = () => {
     setIsAddModalOpen(true);
   };
 
-  const handleSubmitPatient = (patientData: any) => {
-    console.log('New patient data:', patientData);
-    // TODO: Add API call to create patient
-    setIsAddModalOpen(false);
-    // Show success message or refresh data
+  const handleSubmitPatient = async (patientData: any) => {
+    try {
+      setIsSubmitting(true);
+      console.log('[Patients] Submitting new patient:', patientData);
+
+      // Ensure dateOfBirth is a string (YYYY-MM-DD format)
+      const dateOfBirth = typeof patientData.dateOfBirth === 'string'
+        ? patientData.dateOfBirth
+        : patientData.dateOfBirth instanceof Date
+        ? patientData.dateOfBirth.toISOString().split('T')[0]
+        : '';
+
+      const formattedData = {
+        name: patientData.name,
+        email: patientData.email,
+        phone: patientData.phone,
+        dateOfBirth: dateOfBirth,
+        address: patientData.address,
+        emergencyContact: patientData.emergencyContact,
+        status: patientData.status || 'active' as const,
+        notes: patientData.notes || ''
+      };
+
+      console.log('[Patients] Formatted patient data:', formattedData);
+
+      const response = await patientsApi.createPatient(formattedData);
+
+      console.log('[Patients] Create response:', response);
+
+      if (response.success && response.data) {
+        console.log('[Patients] Patient created successfully:', response.data);
+        toast.success('Patient added successfully!');
+        setIsAddModalOpen(false);
+        await loadPatients(); // Reload the list
+        console.log('[Patients] List reloaded');
+      } else {
+        console.error('[Patients] Failed to create patient:', response.error);
+        toast.error(response.error || 'Failed to add patient');
+      }
+    } catch (error) {
+      console.error('[Patients] Exception while adding patient:', error);
+      toast.error('Failed to add patient: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleEditPatient = (patient: any) => {
@@ -283,7 +345,7 @@ export default function PatientsPage() {
           <PatientForm
             onSubmit={handleSubmitPatient}
             onCancel={() => setIsAddModalOpen(false)}
-            isLoading={false}
+            isLoading={isSubmitting}
           />
         </Modal>
       )}

@@ -4,30 +4,28 @@ import { Nurse, NurseFormData, ApiResponse, PaginatedResponse, SearchFilters } f
 // Helper function to convert Supabase nurse to our Nurse type
 const convertSupabaseNurse = (supabaseNurse: any): Nurse => ({
   id: supabaseNurse.id,
+  userId: supabaseNurse.user_id,
   name: supabaseNurse.name,
   email: supabaseNurse.email,
   phone: supabaseNurse.phone,
-  licenseNumber: supabaseNurse.license_number,
-  specialties: supabaseNurse.specialties || [],
-  certifications: supabaseNurse.certifications,
+  specialties: supabaseNurse.specialties,
   availability: supabaseNurse.availability,
-  location: supabaseNurse.location,
   status: supabaseNurse.status,
+  notes: supabaseNurse.notes,
   createdAt: supabaseNurse.created_at,
   updatedAt: supabaseNurse.updated_at,
 });
 
 // Helper function to convert our NurseFormData to Supabase format
 const convertToSupabaseNurse = (nurseData: NurseFormData) => ({
+  user_id: nurseData.userId,
   name: nurseData.name,
   email: nurseData.email,
   phone: nurseData.phone,
-  license_number: nurseData.licenseNumber,
-  specialties: nurseData.specialties || [],
-  certifications: nurseData.certifications,
+  specialties: nurseData.specialties,
   availability: nurseData.availability,
-  location: nurseData.location,
-  status: nurseData.status || 'active',
+  status: nurseData.status,
+  notes: nurseData.notes,
 });
 
 export const nursesApi = {
@@ -158,7 +156,7 @@ export const nursesApi = {
       const { data, error } = await supabaseApiClient.search(
         'nurses',
         query,
-        ['name', 'email', 'phone', 'license_number']
+        ['name', 'email', 'phone', 'specialties']
       );
 
       if (error) {
@@ -176,9 +174,8 @@ export const nursesApi = {
   async getNurseStats(): Promise<{
     total: number;
     active: number;
-    inactive: number;
     onLeave: number;
-    specialties: string[];
+    inactive: number;
   }> {
     try {
       const { data: allNurses, error } = await supabaseApiClient.get('nurses');
@@ -188,15 +185,15 @@ export const nursesApi = {
       }
 
       const nurses = allNurses || [];
-      const allSpecialties = nurses.flatMap((nurse: any) => nurse.specialties || []);
-      const uniqueSpecialties = [...new Set(allSpecialties)];
-      
+      const activeNurses = nurses.filter((n: any) => n.status === 'active');
+      const onLeaveNurses = nurses.filter((n: any) => n.status === 'on_leave');
+      const inactiveNurses = nurses.filter((n: any) => n.status === 'inactive');
+
       return {
         total: nurses.length,
-        active: nurses.filter((n: any) => n.status === 'active').length,
-        inactive: nurses.filter((n: any) => n.status === 'inactive').length,
-        onLeave: nurses.filter((n: any) => n.status === 'on_leave').length,
-        specialties: uniqueSpecialties,
+        active: activeNurses.length,
+        onLeave: onLeaveNurses.length,
+        inactive: inactiveNurses.length,
       };
     } catch (error) {
       console.error('Error fetching nurse stats:', error);
@@ -204,4 +201,3 @@ export const nursesApi = {
     }
   }
 };
-

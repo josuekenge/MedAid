@@ -32,14 +32,14 @@ const convertToSupabaseVisit = (visitData: VisitFormData) => ({
   date: visitData.date,
   window_start: visitData.windowStart,
   window_end: visitData.windowEnd,
-  status: visitData.status || 'requested',
+  status: visitData.status,
   reason_for_visit: visitData.reasonForVisit,
   notes: visitData.notes,
   check_in_time: visitData.checkInTime,
   check_out_time: visitData.checkOutTime,
   location: visitData.location,
-  is_urgent: visitData.isUrgent || false,
-  is_after_hours: visitData.isAfterHours || false,
+  is_urgent: visitData.isUrgent,
+  is_after_hours: visitData.isAfterHours,
 });
 
 export const visitsApi = {
@@ -164,48 +164,36 @@ export const visitsApi = {
     }
   },
 
-  // Get visits for a specific date
+  // Get visits by date
   async getVisitsByDate(date: string): Promise<Visit[]> {
     try {
       const { data, error } = await supabaseApiClient.get('visits', { date });
-
-      if (error) {
-        throw new Error(`Failed to fetch visits by date: ${error.message}`);
-      }
-
-      return data?.map(convertSupabaseVisit) || [];
+      if (error) throw new Error(`Failed to fetch visits by date: ${error.message}`);
+      return data.map(convertSupabaseVisit);
     } catch (error) {
       console.error('Error fetching visits by date:', error);
       throw error;
     }
   },
 
-  // Get visits for a specific patient
+  // Get visits by patient
   async getVisitsByPatient(patientId: string): Promise<Visit[]> {
     try {
       const { data, error } = await supabaseApiClient.get('visits', { patient_id: patientId });
-
-      if (error) {
-        throw new Error(`Failed to fetch visits by patient: ${error.message}`);
-      }
-
-      return data?.map(convertSupabaseVisit) || [];
+      if (error) throw new Error(`Failed to fetch visits by patient: ${error.message}`);
+      return data.map(convertSupabaseVisit);
     } catch (error) {
       console.error('Error fetching visits by patient:', error);
       throw error;
     }
   },
 
-  // Get visits for a specific nurse
+  // Get visits by nurse
   async getVisitsByNurse(nurseId: string): Promise<Visit[]> {
     try {
       const { data, error } = await supabaseApiClient.get('visits', { nurse_id: nurseId });
-
-      if (error) {
-        throw new Error(`Failed to fetch visits by nurse: ${error.message}`);
-      }
-
-      return data?.map(convertSupabaseVisit) || [];
+      if (error) throw new Error(`Failed to fetch visits by nurse: ${error.message}`);
+      return data.map(convertSupabaseVisit);
     } catch (error) {
       console.error('Error fetching visits by nurse:', error);
       throw error;
@@ -213,7 +201,7 @@ export const visitsApi = {
   },
 
   // Update visit status
-  async updateVisitStatus(id: string, status: Visit['status']): Promise<ApiResponse<Visit>> {
+  async updateVisitStatus(id: string, status: string): Promise<ApiResponse<Visit>> {
     try {
       const { data, error } = await supabaseApiClient.update('visits', id, { status });
 
@@ -241,7 +229,7 @@ export const visitsApi = {
     scheduled: number;
     completed: number;
     cancelled: number;
-    inProgress: number;
+    urgent: number;
   }> {
     try {
       const { data: allVisits, error } = await supabaseApiClient.get('visits');
@@ -251,13 +239,17 @@ export const visitsApi = {
       }
 
       const visits = allVisits || [];
-      
+      const scheduledVisits = visits.filter((v: any) => v.status === 'scheduled');
+      const completedVisits = visits.filter((v: any) => v.status === 'completed');
+      const cancelledVisits = visits.filter((v: any) => v.status === 'cancelled');
+      const urgentVisits = visits.filter((v: any) => v.is_urgent);
+
       return {
         total: visits.length,
-        scheduled: visits.filter((v: any) => v.status === 'scheduled').length,
-        completed: visits.filter((v: any) => v.status === 'completed').length,
-        cancelled: visits.filter((v: any) => v.status === 'cancelled').length,
-        inProgress: visits.filter((v: any) => v.status === 'in_progress').length,
+        scheduled: scheduledVisits.length,
+        completed: completedVisits.length,
+        cancelled: cancelledVisits.length,
+        urgent: urgentVisits.length,
       };
     } catch (error) {
       console.error('Error fetching visit stats:', error);
@@ -265,4 +257,3 @@ export const visitsApi = {
     }
   }
 };
-

@@ -1,13 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Modal, ConfirmDialog } from '@/components/ui/modal';
 import { VisitForm } from '@/components/forms/visit-form';
-import { mockVisits, mockPatients, mockNurses, mockServices } from '@/lib/mock-data';
+import { visitsApi, patientsApi, nursesApi, servicesApi } from '@/services/api';
 import { formatDate, formatTime } from '@/lib/utils';
+import { Visit, Patient, Nurse, Service } from '@/types';
 import {
   Calendar,
   Search,
@@ -22,6 +23,7 @@ import {
   CheckCircle,
   Trash2
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export default function VisitsPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -29,11 +31,44 @@ export default function VisitsPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
-  const [selectedVisit, setSelectedVisit] = useState<any>(null);
+  const [selectedVisit, setSelectedVisit] = useState<Visit | null>(null);
+  const [visits, setVisits] = useState<Visit[]>([]);
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [nurses, setNurses] = useState<Nurse[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const visits = mockVisits;
-  const patients = mockPatients;
-  const nurses = mockNurses;
+  // Fetch all data from Supabase
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      setIsLoading(true);
+      console.log('[Visits] Loading data from Supabase...');
+      const [visitsResponse, patientsResponse, nursesResponse, servicesResponse] = await Promise.all([
+        visitsApi.getVisits(),
+        patientsApi.getPatients(),
+        nursesApi.getNurses(),
+        servicesApi.getServices()
+      ]);
+      console.log('[Visits] Loaded', visitsResponse.data.length, 'visits');
+      console.log('[Visits] Loaded', patientsResponse.data.length, 'patients');
+      console.log('[Visits] Loaded', nursesResponse.data.length, 'nurses');
+      console.log('[Visits] Loaded', servicesResponse.data.length, 'services');
+      setVisits(visitsResponse.data);
+      setPatients(patientsResponse.data);
+      setNurses(nursesResponse.data);
+      setServices(servicesResponse.data);
+    } catch (error) {
+      console.error('[Visits] Error loading data:', error);
+      toast.error('Failed to load visits data');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const filteredVisits = visits?.filter(visit => {
     const patient = patients?.find(p => p.id === visit.patientId);
@@ -51,26 +86,82 @@ export default function VisitsPage() {
     setIsAddModalOpen(true);
   };
 
-  const handleSubmitVisit = (visitData: any) => {
-    console.log('New visit data:', visitData);
-    // TODO: Add API call to create visit
-    setIsAddModalOpen(false);
-    // Show success message or refresh data
+  const handleSubmitVisit = async (visitData: any) => {
+    try {
+      setIsSubmitting(true);
+      console.log('[Visits] Submitting new visit:', visitData);
+
+      const response = await visitsApi.createVisit({
+        patientId: visitData.patientId,
+        nurseId: visitData.nurseId,
+        serviceId: visitData.serviceId,
+        date: visitData.date,
+        windowStart: visitData.time,
+        windowEnd: visitData.time,
+        status: 'scheduled',
+        reasonForVisit: visitData.type,
+        notes: visitData.notes,
+        location: visitData.address
+      });
+
+      console.log('[Visits] Create response:', response);
+
+      if (response.success) {
+        console.log('[Visits] Visit created successfully, reloading data...');
+        toast.success('Visit scheduled successfully!');
+        setIsAddModalOpen(false);
+        await loadData(); // Wait for reload
+        console.log('[Visits] Data reloaded');
+      } else {
+        console.error('[Visits] Failed to create visit:', response.error);
+        toast.error(response.error || 'Failed to schedule visit');
+      }
+    } catch (error) {
+      console.error('[Visits] Exception while scheduling visit:', error);
+      toast.error('Failed to schedule visit');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleEditVisit = (visit: any) => {
+  const handleEditVisit = (visit: Visit) => {
     setSelectedVisit(visit);
     setIsEditModalOpen(true);
   };
 
-  const handleDeleteVisit = (visit: any) => {
+  const handleDeleteVisit = (visit: Visit) => {
     setSelectedVisit(visit);
     setIsDeleteDialogOpen(true);
   };
 
-  const handleViewVisit = (visit: any) => {
+  const handleViewVisit = (visit: Visit) => {
     setSelectedVisit(visit);
     setIsViewModalOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!selectedVisit) return;
+
+    try {
+      console.log('[Visits] Deleting visit:', selectedVisit.id);
+      const response = await visitsApi.deleteVisit(selectedVisit.id);
+      console.log('[Visits] Delete response:', response);
+
+      if (response.success) {
+        console.log('[Visits] Visit deleted successfully, reloading data...');
+        toast.success('Visit deleted successfully!');
+        setIsDeleteDialogOpen(false);
+        setSelectedVisit(null);
+        await loadData(); // Wait for reload
+        console.log('[Visits] Data reloaded');
+      } else {
+        console.error('[Visits] Failed to delete visit:', response.error);
+        toast.error(response.error || 'Failed to delete visit');
+      }
+    } catch (error) {
+      console.error('[Visits] Exception while deleting visit:', error);
+      toast.error('Failed to delete visit');
+    }
   };
 
   const getPatientName = (patientId: string) => {
@@ -243,10 +334,10 @@ export default function VisitsPage() {
           <VisitForm
             patients={patients || []}
             nurses={nurses || []}
-            services={mockServices || []}
+            services={services || []}
             onSubmit={handleSubmitVisit}
             onCancel={() => setIsAddModalOpen(false)}
-            isLoading={false}
+            isLoading={isSubmitting}
           />
         </Modal>
       )}
@@ -329,12 +420,9 @@ export default function VisitsPage() {
       <ConfirmDialog
         isOpen={isDeleteDialogOpen}
         onClose={() => setIsDeleteDialogOpen(false)}
-        onConfirm={() => {
-          alert(`Deleting visit ${selectedVisit?.id} (mock action)`);
-          setIsDeleteDialogOpen(false);
-        }}
+        onConfirm={confirmDelete}
         title="Confirm Deletion"
-        message={`Are you sure you want to delete the visit for patient ${selectedVisit?.patientName} on ${formatDate(selectedVisit?.date)}? This action cannot be undone.`}
+        message={`Are you sure you want to delete this visit? This action cannot be undone.`}
       />
     </div>
   );

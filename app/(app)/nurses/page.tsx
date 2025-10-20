@@ -1,20 +1,21 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Modal, ConfirmDialog } from '@/components/ui/modal';
 import { NurseForm } from '@/components/forms/nurse-form';
-import { mockNurses } from '@/lib/mock-data';
+import { nursesApi } from '@/services/api';
 import { formatDate } from '@/lib/utils';
-import { 
-  UserCheck, 
-  Search, 
-  Plus, 
-  Eye, 
-  Edit, 
-  MessageSquare, 
+import { Nurse } from '@/types';
+import {
+  UserCheck,
+  Search,
+  Plus,
+  Eye,
+  Edit,
+  MessageSquare,
   X,
   Phone,
   Mail,
@@ -24,6 +25,7 @@ import {
   Star,
   Trash2
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export default function NursesPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -31,43 +33,115 @@ export default function NursesPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
-  const [selectedNurse, setSelectedNurse] = useState<any>(null);
+  const [selectedNurse, setSelectedNurse] = useState<Nurse | null>(null);
+  const [nurses, setNurses] = useState<Nurse[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Use mock data instead of API calls
-  const nurses = mockNurses;
-  const isLoading = false;
+  // Fetch nurses from Supabase
+  useEffect(() => {
+    loadNurses();
+  }, []);
+
+  const loadNurses = async () => {
+    try {
+      setIsLoading(true);
+      console.log('[Nurses] Loading nurses from Supabase...');
+      const response = await nursesApi.getNurses();
+      console.log('[Nurses] Loaded', response.data.length, 'nurses:', response.data);
+      setNurses(response.data);
+    } catch (error) {
+      console.error('[Nurses] Error loading nurses:', error);
+      toast.error('Failed to load nurses');
+      setNurses([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleAddNurse = () => {
     setSelectedNurse(null);
     setIsAddModalOpen(true);
   };
 
-  const handleSubmitNurse = (nurseData: any) => {
-    console.log('New nurse data:', nurseData);
-    // TODO: Add API call to create nurse
-    setIsAddModalOpen(false);
-    // Show success message or refresh data
+  const handleSubmitNurse = async (nurseData: any) => {
+    try {
+      setIsSubmitting(true);
+      console.log('[Nurses] Submitting new nurse:', nurseData);
+
+      const response = await nursesApi.createNurse({
+        name: nurseData.name,
+        email: nurseData.email,
+        phone: nurseData.phone,
+        specialties: nurseData.specialties || [],
+        availability: nurseData.availability,
+        status: 'active',
+        notes: nurseData.notes
+      });
+
+      console.log('[Nurses] Create response:', response);
+
+      if (response.success) {
+        console.log('[Nurses] Nurse created successfully, reloading list...');
+        toast.success('Nurse added successfully!');
+        setIsAddModalOpen(false);
+        await loadNurses(); // Wait for reload
+        console.log('[Nurses] List reloaded');
+      } else {
+        console.error('[Nurses] Failed to create nurse:', response.error);
+        toast.error(response.error || 'Failed to add nurse');
+      }
+    } catch (error) {
+      console.error('[Nurses] Exception while adding nurse:', error);
+      toast.error('Failed to add nurse');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleEditNurse = (nurse: any) => {
+  const handleEditNurse = (nurse: Nurse) => {
     setSelectedNurse(nurse);
     setIsEditModalOpen(true);
   };
 
-  const handleViewNurse = (nurse: any) => {
+  const handleViewNurse = (nurse: Nurse) => {
     setSelectedNurse(nurse);
     setIsViewModalOpen(true);
   };
 
-  const handleDeleteNurse = (nurse: any) => {
+  const handleDeleteNurse = (nurse: Nurse) => {
     setSelectedNurse(nurse);
     setIsDeleteDialogOpen(true);
   };
 
+  const confirmDelete = async () => {
+    if (!selectedNurse) return;
+
+    try {
+      console.log('[Nurses] Deleting nurse:', selectedNurse.id);
+      const response = await nursesApi.deleteNurse(selectedNurse.id);
+      console.log('[Nurses] Delete response:', response);
+
+      if (response.success) {
+        console.log('[Nurses] Nurse deleted successfully, reloading list...');
+        toast.success('Nurse deleted successfully!');
+        setIsDeleteDialogOpen(false);
+        setSelectedNurse(null);
+        await loadNurses(); // Wait for reload
+        console.log('[Nurses] List reloaded');
+      } else {
+        console.error('[Nurses] Failed to delete nurse:', response.error);
+        toast.error(response.error || 'Failed to delete nurse');
+      }
+    } catch (error) {
+      console.error('[Nurses] Exception while deleting nurse:', error);
+      toast.error('Failed to delete nurse');
+    }
+  };
+
   const filteredNurses = nurses.filter(nurse => {
-    const matchesSearch = 
+    const matchesSearch =
       nurse.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      nurse.specialty.toLowerCase().includes(searchQuery.toLowerCase()) ||
       nurse.email.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesSearch;
   });
@@ -291,7 +365,7 @@ export default function NursesPage() {
           <NurseForm
             onSubmit={handleSubmitNurse}
             onCancel={() => setIsAddModalOpen(false)}
-            isLoading={false}
+            isLoading={isSubmitting}
           />
         </Modal>
       )}
@@ -374,10 +448,7 @@ export default function NursesPage() {
         <ConfirmDialog
           isOpen={isDeleteDialogOpen}
           onClose={() => setIsDeleteDialogOpen(false)}
-          onConfirm={() => {
-            // Handle delete logic here
-            setIsDeleteDialogOpen(false);
-          }}
+          onConfirm={confirmDelete}
           title="Delete Nurse"
           message={`Are you sure you want to delete ${selectedNurse.name}? This action cannot be undone.`}
         />

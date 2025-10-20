@@ -4,30 +4,30 @@ import { Patient, PatientFormData, ApiResponse, PaginatedResponse, SearchFilters
 // Helper function to convert Supabase patient to our Patient type
 const convertSupabasePatient = (supabasePatient: any): Patient => ({
   id: supabasePatient.id,
+  userId: supabasePatient.user_id,
   name: supabasePatient.name,
   email: supabasePatient.email,
   phone: supabasePatient.phone,
   dateOfBirth: supabasePatient.date_of_birth,
   address: supabasePatient.address,
   emergencyContact: supabasePatient.emergency_contact,
-  medicalHistory: supabasePatient.medical_history,
-  allergies: supabasePatient.allergies || [],
   status: supabasePatient.status,
+  notes: supabasePatient.notes,
   createdAt: supabasePatient.created_at,
   updatedAt: supabasePatient.updated_at,
 });
 
 // Helper function to convert our PatientFormData to Supabase format
 const convertToSupabasePatient = (patientData: PatientFormData) => ({
+  user_id: patientData.userId,
   name: patientData.name,
   email: patientData.email,
   phone: patientData.phone,
   date_of_birth: patientData.dateOfBirth,
   address: patientData.address,
   emergency_contact: patientData.emergencyContact,
-  medical_history: patientData.medicalHistory,
-  allergies: patientData.allergies || [],
-  status: patientData.status || 'active',
+  status: patientData.status,
+  notes: patientData.notes,
 });
 
 export const patientsApi = {
@@ -187,12 +187,15 @@ export const patientsApi = {
       }
 
       const patients = allPatients || [];
-      
+      const activePatients = patients.filter((p: any) => p.status === 'active');
+      const inactivePatients = patients.filter((p: any) => p.status === 'inactive');
+      const dischargedPatients = patients.filter((p: any) => p.status === 'discharged');
+
       return {
         total: patients.length,
-        active: patients.filter((p: any) => p.status === 'active').length,
-        inactive: patients.filter((p: any) => p.status === 'inactive').length,
-        discharged: patients.filter((p: any) => p.status === 'discharged').length,
+        active: activePatients.length,
+        inactive: inactivePatients.length,
+        discharged: dischargedPatients.length,
       };
     } catch (error) {
       console.error('Error fetching patient stats:', error);
@@ -200,4 +203,3 @@ export const patientsApi = {
     }
   }
 };
-

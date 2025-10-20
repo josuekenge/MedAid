@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cat package.json)",
+      "Bash(grep -n \"New patient data\" /mnt/c/Users/josue/OneDrive/Desktop/MedAid/app/(app)/patients/page.tsx)",
+      "Bash(npm run dev)",
+      "Bash(cat /mnt/c/Users/josue/OneDrive/Desktop/MedAid/tsconfig.json)",
+      "Bash(cat /mnt/c/Users/josue/OneDrive/Desktop/MedAid/package.json)",
+      "Bash(ls -la /mnt/c/Users/josue/OneDrive/Desktop/MedAid/app/(app)/patients/)",
+      "Bash(ls -la /mnt/c/Users/josue/OneDrive/Desktop/MedAid/src/app/(dashboard)/patients/)",
+      "Bash(grep -n \"Badge\" /mnt/c/Users/josue/OneDrive/Desktop/MedAid/app/(app)/patients/page.tsx)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

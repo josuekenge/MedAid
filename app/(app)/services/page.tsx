@@ -1,18 +1,20 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import { Modal, ConfirmDialog } from '@/components/ui/modal';
-import { mockServices } from '@/lib/mock-data';
+import { servicesApi } from '@/services/api';
 import { formatCurrency } from '@/lib/utils';
-import { 
-  Activity, 
-  Search, 
-  Plus, 
-  Eye, 
-  Edit, 
+import { Service } from '@/types';
+import {
+  Activity,
+  Search,
+  Plus,
+  Eye,
+  Edit,
   X,
   Clock,
   DollarSign,
@@ -20,6 +22,7 @@ import {
   CheckCircle,
   Trash2
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export default function ServicesPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -27,37 +30,132 @@ export default function ServicesPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
-  const [selectedService, setSelectedService] = useState<any>(null);
+  const [selectedService, setSelectedService] = useState<Service | null>(null);
+  const [services, setServices] = useState<Service[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    basePrice: 0,
+    minMinutes: 0,
+    maxMinutes: 0,
+    isActive: true
+  });
 
-  // Use mock data instead of API calls
-  const services = mockServices;
-  const isLoading = false;
+  // Fetch services from Supabase
+  useEffect(() => {
+    loadServices();
+  }, []);
+
+  const loadServices = async () => {
+    try {
+      setIsLoading(true);
+      console.log('[Services] Loading services from Supabase...');
+      const response = await servicesApi.getServices();
+      console.log('[Services] Loaded', response.data.length, 'services:', response.data);
+      setServices(response.data);
+    } catch (error) {
+      console.error('[Services] Error loading services:', error);
+      toast.error('Failed to load services');
+      setServices([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleAddService = () => {
     setSelectedService(null);
+    setFormData({
+      name: '',
+      description: '',
+      basePrice: 0,
+      minMinutes: 0,
+      maxMinutes: 0,
+      isActive: true
+    });
     setIsAddModalOpen(true);
   };
 
-  const handleEditService = (service: any) => {
+  const handleSubmitService = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setIsSubmitting(true);
+      console.log('[Services] Submitting new service:', formData);
+
+      const response = await servicesApi.createService(formData);
+      console.log('[Services] Create response:', response);
+
+      if (response.success) {
+        console.log('[Services] Service created successfully, reloading list...');
+        toast.success('Service added successfully!');
+        setIsAddModalOpen(false);
+        await loadServices(); // Wait for reload
+        console.log('[Services] List reloaded');
+        setFormData({
+          name: '',
+          description: '',
+          basePrice: 0,
+          minMinutes: 0,
+          maxMinutes: 0,
+          isActive: true
+        });
+      } else {
+        console.error('[Services] Failed to create service:', response.error);
+        toast.error(response.error || 'Failed to add service');
+      }
+    } catch (error) {
+      console.error('[Services] Exception while adding service:', error);
+      toast.error('Failed to add service');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleEditService = (service: Service) => {
     setSelectedService(service);
     setIsEditModalOpen(true);
   };
 
-  const handleViewService = (service: any) => {
+  const handleViewService = (service: Service) => {
     setSelectedService(service);
     setIsViewModalOpen(true);
   };
 
-  const handleDeleteService = (service: any) => {
+  const handleDeleteService = (service: Service) => {
     setSelectedService(service);
     setIsDeleteDialogOpen(true);
   };
 
+  const confirmDelete = async () => {
+    if (!selectedService) return;
+
+    try {
+      console.log('[Services] Deleting service:', selectedService.id);
+      const response = await servicesApi.deleteService(selectedService.id);
+      console.log('[Services] Delete response:', response);
+
+      if (response.success) {
+        console.log('[Services] Service deleted successfully, reloading list...');
+        toast.success('Service deleted successfully!');
+        setIsDeleteDialogOpen(false);
+        setSelectedService(null);
+        await loadServices(); // Wait for reload
+        console.log('[Services] List reloaded');
+      } else {
+        console.error('[Services] Failed to delete service:', response.error);
+        toast.error(response.error || 'Failed to delete service');
+      }
+    } catch (error) {
+      console.error('[Services] Exception while deleting service:', error);
+      toast.error('Failed to delete service');
+    }
+  };
+
   const filteredServices = services.filter(service => {
-    const matchesSearch = 
+    const matchesSearch =
       service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      service.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      service.category.toLowerCase().includes(searchQuery.toLowerCase());
+      (service.description && service.description.toLowerCase().includes(searchQuery.toLowerCase()));
     return matchesSearch;
   });
 
@@ -129,7 +227,7 @@ export default function ServicesPage() {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Active Services</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {services.filter(s => s.status === 'active').length}
+                  {services.filter(s => s.isActive).length}
                 </p>
               </div>
             </div>
@@ -145,7 +243,7 @@ export default function ServicesPage() {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Average Price</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {formatCurrency(services.reduce((sum, s) => sum + s.price, 0) / services.length) || '$0'}
+                  {formatCurrency(services.reduce((sum, s) => sum + s.basePrice, 0) / services.length) || '$0'}
                 </p>
               </div>
             </div>
@@ -159,9 +257,9 @@ export default function ServicesPage() {
                 <Users className="h-6 w-6 text-gray-600" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Categories</p>
+                <p className="text-sm font-medium text-gray-600">Total Revenue</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {new Set(services.map(s => s.category)).size}
+                  {formatCurrency(services.reduce((sum, s) => sum + s.basePrice, 0))}
                 </p>
               </div>
             </div>
@@ -201,9 +299,8 @@ export default function ServicesPage() {
                   <tr className="border-b border-gray-200">
                     <th className="text-left py-3 px-4 font-semibold text-gray-700">Name</th>
                     <th className="text-left py-3 px-4 font-semibold text-gray-700">Description</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Category</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Price</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Duration</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Base Price</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Duration Range</th>
                     <th className="text-left py-3 px-4 font-semibold text-gray-700">Status</th>
                     <th className="text-left py-3 px-4 font-semibold text-gray-700">Actions</th>
                   </tr>
@@ -223,23 +320,20 @@ export default function ServicesPage() {
                         </span>
                       </td>
                       <td className="py-3 px-4">
-                        <span className="text-gray-700">{service.category}</span>
-                      </td>
-                      <td className="py-3 px-4">
                         <div className="flex items-center">
                           <DollarSign className="h-4 w-4 mr-2 text-gray-500" />
-                          <span className="font-medium text-gray-900">{formatCurrency(service.price)}</span>
+                          <span className="font-medium text-gray-900">{formatCurrency(service.basePrice)}</span>
                         </div>
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex items-center">
                           <Clock className="h-4 w-4 mr-2 text-gray-500" />
-                          <span className="text-gray-700">{service.duration} min</span>
+                          <span className="text-gray-700">{service.minMinutes}-{service.maxMinutes} min</span>
                         </div>
                       </td>
                       <td className="py-3 px-4">
                         <span className="text-gray-700">
-                          {getStatusText(service.status)}
+                          {service.isActive ? 'Active' : 'Inactive'}
                         </span>
                       </td>
                       <td className="py-3 px-4">
@@ -286,13 +380,15 @@ export default function ServicesPage() {
           title="Add New Service"
         >
           <div className="p-6">
-            <form className="space-y-4">
+            <form className="space-y-4" onSubmit={handleSubmitService}>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Service Name *</label>
                 <input
                   type="text"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Enter service name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   required
                 />
               </div>
@@ -302,6 +398,8 @@ export default function ServicesPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   rows={3}
                   placeholder="Describe the service"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -312,34 +410,49 @@ export default function ServicesPage() {
                     step="0.01"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="0.00"
+                    value={formData.basePrice}
+                    onChange={(e) => setFormData({ ...formData, basePrice: parseFloat(e.target.value) })}
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Duration (minutes)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Min Duration (minutes)</label>
                   <input
                     type="number"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="60"
+                    placeholder="30"
+                    value={formData.minMinutes}
+                    onChange={(e) => setFormData({ ...formData, minMinutes: parseInt(e.target.value) })}
                   />
                 </div>
               </div>
               <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Max Duration (minutes)</label>
+                <input
+                  type="number"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="60"
+                  value={formData.maxMinutes}
+                  onChange={(e) => setFormData({ ...formData, maxMinutes: parseInt(e.target.value) })}
+                />
+              </div>
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                <select className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <select
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={formData.isActive ? 'active' : 'inactive'}
+                  onChange={(e) => setFormData({ ...formData, isActive: e.target.value === 'active' })}
+                >
                   <option value="active">Active</option>
                   <option value="inactive">Inactive</option>
                 </select>
               </div>
               <div className="flex justify-end space-x-3 mt-6">
-                <Button variant="outline" onClick={() => setIsAddModalOpen(false)}>
+                <Button type="button" variant="outline" onClick={() => setIsAddModalOpen(false)}>
                   Cancel
                 </Button>
-                <Button variant="primary" onClick={() => {
-                  console.log('Service form submitted');
-                  setIsAddModalOpen(false);
-                }}>
-                  Add Service
+                <Button type="submit" variant="primary" disabled={isSubmitting}>
+                  {isSubmitting ? 'Adding...' : 'Add Service'}
                 </Button>
               </div>
             </form>
@@ -363,23 +476,19 @@ export default function ServicesPage() {
               <p className="text-gray-600">{selectedService.description}</p>
             </div>
             <div>
-              <h3 className="font-medium text-gray-900">Category</h3>
-              <p className="text-gray-600">{selectedService.category}</p>
+              <h3 className="font-medium text-gray-900">Base Price</h3>
+              <p className="text-gray-600">{formatCurrency(selectedService.basePrice)}</p>
             </div>
             <div>
-              <h3 className="font-medium text-gray-900">Price</h3>
-              <p className="text-gray-600">{formatCurrency(selectedService.price)}</p>
-            </div>
-            <div>
-              <h3 className="font-medium text-gray-900">Duration</h3>
-              <p className="text-gray-600">{selectedService.duration} minutes</p>
+              <h3 className="font-medium text-gray-900">Duration Range</h3>
+              <p className="text-gray-600">{selectedService.minMinutes}-{selectedService.maxMinutes} minutes</p>
             </div>
             <div>
               <h3 className="font-medium text-gray-900">Status</h3>
-              <Badge 
-                variant={selectedService.status === 'active' ? 'success' : 'destructive'}
+              <Badge
+                variant={selectedService.isActive ? 'success' : 'destructive'}
               >
-                {selectedService.status}
+                {selectedService.isActive ? 'Active' : 'Inactive'}
               </Badge>
             </div>
             <div className="flex justify-end space-x-3 mt-6">
@@ -421,10 +530,7 @@ export default function ServicesPage() {
         <ConfirmDialog
           isOpen={isDeleteDialogOpen}
           onClose={() => setIsDeleteDialogOpen(false)}
-          onConfirm={() => {
-            // Handle delete logic here
-            setIsDeleteDialogOpen(false);
-          }}
+          onConfirm={confirmDelete}
           title="Delete Service"
           message={`Are you sure you want to delete "${selectedService.name}"? This action cannot be undone.`}
         />

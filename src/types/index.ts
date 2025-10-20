@@ -1,28 +1,29 @@
 // Core entity types
 export interface Patient {
   id: string;
+  userId?: string | null;
   name: string;
-  email: string;
-  phone: string;
-  dateOfBirth: string;
-  address: string;
-  emergencyContact: string;
+  email: string | null;
+  phone: string | null;
+  dateOfBirth: string | null;
+  address: any | null;
+  emergencyContact: any | null;
   status: 'active' | 'inactive' | 'discharged';
+  notes?: string | null;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface Nurse {
   id: string;
+  userId: string;
   name: string;
   email: string;
-  phone: string;
-  specialty: string;
-  experienceYears: number;
-  licenseNumber: string;
-  address: string;
+  phone: string | null;
+  specialties: string[] | null;
+  availability: any | null;
   status: 'active' | 'inactive' | 'on_leave';
-  notes?: string;
+  notes?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -30,15 +31,20 @@ export interface Nurse {
 export interface Visit {
   id: string;
   patientId: string;
-  nurseId: string;
-  patientName: string;
-  nurseName: string;
+  nurseId: string | null;
+  serviceId: string | null;
+  carePlanId: string | null;
   date: string;
-  time: string;
-  type: string;
+  windowStart: string;
+  windowEnd: string;
   status: 'scheduled' | 'completed' | 'cancelled' | 'in_progress';
-  address: string;
-  notes?: string;
+  reasonForVisit: string | null;
+  notes?: string | null;
+  checkInTime: string | null;
+  checkOutTime: string | null;
+  location: any | null;
+  isUrgent: boolean;
+  isAfterHours: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -71,11 +77,12 @@ export interface Incident {
 export interface Service {
   id: string;
   name: string;
-  description: string;
-  category: string;
-  price: number;
-  duration: number;
-  status: 'active' | 'inactive' | 'discontinued';
+  description: string | null;
+  basePrice: number;
+  minMinutes: number | null;
+  maxMinutes: number | null;
+  isActive: boolean;
+  notes: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -93,36 +100,44 @@ export interface Certification {
 
 // Form types
 export interface PatientFormData {
+  userId?: string | null;
   name: string;
-  email: string;
-  phone: string;
-  dateOfBirth: string;
-  address: string;
-  emergencyContact: string;
+  email: string | null;
+  phone: string | null;
+  dateOfBirth: string | null;
+  address: any | null;
+  emergencyContact: any | null;
   status: 'active' | 'inactive' | 'discharged';
+  notes?: string | null;
 }
 
 export interface NurseFormData {
+  userId: string;
   name: string;
   email: string;
-  phone: string;
-  specialty: string;
-  experienceYears: number;
-  licenseNumber: string;
-  address: string;
+  phone: string | null;
+  specialties: string[] | null;
+  availability: any | null;
   status: 'active' | 'inactive' | 'on_leave';
-  notes?: string;
+  notes?: string | null;
 }
 
 export interface VisitFormData {
   patientId: string;
-  nurseId: string;
+  nurseId: string | null;
+  serviceId: string | null;
+  carePlanId: string | null;
   date: string;
-  time: string;
-  type: string;
+  windowStart: string;
+  windowEnd: string;
   status: 'scheduled' | 'completed' | 'cancelled' | 'in_progress';
-  address: string;
-  notes?: string;
+  reasonForVisit: string | null;
+  notes?: string | null;
+  checkInTime: string | null;
+  checkOutTime: string | null;
+  location: any | null;
+  isUrgent: boolean;
+  isAfterHours: boolean;
 }
 
 export interface BillingFormData {
@@ -137,9 +152,10 @@ export interface BillingFormData {
 
 // API response types
 export interface ApiResponse<T> {
-  data: T;
-  message: string;
+  data?: T;
+  message?: string;
   success: boolean;
+  error?: string;
 }
 
 export interface PaginatedResponse<T> {
@@ -167,10 +183,17 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  role: 'admin' | 'nurse_manager' | 'nurse' | 'billing_manager' | 'viewer';
+  role: 'admin' | 'nurse_manager' | 'nurse' | 'billing_manager' | 'viewer' | 'coordinator';
   avatar?: string;
-  createdAt: string;
-  updatedAt: string;
+  isActive?: boolean;
+  lastLoginAt?: Date;
+  preferences?: {
+    theme: 'light' | 'dark' | 'system';
+    notifications: boolean;
+    language: string;
+  };
+  createdAt: Date | string;
+  updatedAt: Date | string;
 }
 
 export interface AuthState {

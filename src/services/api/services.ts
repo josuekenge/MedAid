@@ -10,6 +10,7 @@ const convertSupabaseService = (supabaseService: any): Service => ({
   minMinutes: supabaseService.min_minutes,
   maxMinutes: supabaseService.max_minutes,
   isActive: supabaseService.is_active,
+  notes: supabaseService.notes,
   createdAt: supabaseService.created_at,
   updatedAt: supabaseService.updated_at,
 });
@@ -21,7 +22,8 @@ const convertToSupabaseService = (serviceData: ServiceFormData) => ({
   base_price: serviceData.basePrice,
   min_minutes: serviceData.minMinutes,
   max_minutes: serviceData.maxMinutes,
-  is_active: serviceData.isActive !== undefined ? serviceData.isActive : true,
+  is_active: serviceData.isActive || true,
+  notes: serviceData.notes,
 });
 
 export const servicesApi = {
@@ -166,22 +168,6 @@ export const servicesApi = {
     }
   },
 
-  // Get active services only
-  async getActiveServices(): Promise<Service[]> {
-    try {
-      const { data, error } = await supabaseApiClient.get('services', { is_active: true });
-
-      if (error) {
-        throw new Error(`Failed to fetch active services: ${error.message}`);
-      }
-
-      return data?.map(convertSupabaseService) || [];
-    } catch (error) {
-      console.error('Error fetching active services:', error);
-      throw error;
-    }
-  },
-
   // Get service statistics
   async getServiceStats(): Promise<{
     total: number;
@@ -198,10 +184,10 @@ export const servicesApi = {
 
       const services = allServices || [];
       const activeServices = services.filter((s: any) => s.is_active);
-      const averagePrice = services.length > 0 
-        ? services.reduce((sum: number, s: any) => sum + s.base_price, 0) / services.length 
+      const averagePrice = services.length > 0
+        ? services.reduce((sum: number, s: any) => sum + s.base_price, 0) / services.length
         : 0;
-      
+
       return {
         total: services.length,
         active: activeServices.length,

@@ -1,20 +1,22 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Modal, ConfirmDialog } from '@/components/ui/modal';
+import { Badge } from '@/components/ui/badge';
 import { PatientForm } from '@/components/forms/patient-form';
-import { mockPatients } from '@/lib/mock-data';
+import { patientsApi } from '@/services/api';
 import { formatDate, calculateAge } from '@/lib/utils';
-import { 
-  Users, 
-  Search, 
-  Plus, 
-  Eye, 
-  Edit, 
-  MessageSquare, 
+import { Patient } from '@/types';
+import {
+  Users,
+  Search,
+  Plus,
+  Eye,
+  Edit,
+  MessageSquare,
   X,
   Phone,
   Mail,
@@ -24,6 +26,7 @@ import {
   Heart,
   Trash2
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export default function PatientsPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -31,44 +34,130 @@ export default function PatientsPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
-  const [selectedPatient, setSelectedPatient] = useState<any>(null);
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Use mock data instead of API calls
-  const patients = mockPatients;
-  const isLoading = false;
+  // Fetch patients from Supabase
+  useEffect(() => {
+    loadPatients();
+  }, []);
+
+  const loadPatients = async () => {
+    try {
+      setIsLoading(true);
+      console.log('[Patients] Loading patients from Supabase...');
+      const response = await patientsApi.getPatients();
+      console.log('[Patients] Loaded', response.data.length, 'patients:', response.data);
+      setPatients(response.data);
+    } catch (error) {
+      console.error('[Patients] Error loading patients:', error);
+      toast.error('Failed to load patients');
+      setPatients([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleAddPatient = () => {
     setSelectedPatient(null);
     setIsAddModalOpen(true);
   };
 
-  const handleSubmitPatient = (patientData: any) => {
-    console.log('New patient data:', patientData);
-    // TODO: Add API call to create patient
-    setIsAddModalOpen(false);
-    // Show success message or refresh data
+  const handleSubmitPatient = async (patientData: any) => {
+    try {
+      setIsSubmitting(true);
+      console.log('[Patients] Submitting new patient:', patientData);
+      console.log('[Patients] Patient data type:', typeof patientData.dateOfBirth);
+
+      // Ensure dateOfBirth is a string (YYYY-MM-DD format)
+      const dateOfBirth = typeof patientData.dateOfBirth === 'string'
+        ? patientData.dateOfBirth
+        : patientData.dateOfBirth instanceof Date
+        ? patientData.dateOfBirth.toISOString().split('T')[0]
+        : '';
+
+      const formattedData = {
+        name: patientData.name,
+        email: patientData.email,
+        phone: patientData.phone,
+        dateOfBirth: dateOfBirth,
+        address: patientData.address,
+        emergencyContact: patientData.emergencyContact,
+        status: patientData.status || 'active' as const,
+        notes: patientData.notes || ''
+      };
+
+      console.log('[Patients] Formatted patient data:', formattedData);
+
+      const response = await patientsApi.createPatient(formattedData);
+
+      console.log('[Patients] Create response:', response);
+
+      if (response.success && response.data) {
+        console.log('[Patients] Patient created successfully:', response.data);
+        toast.success('Patient added successfully!');
+        setIsAddModalOpen(false);
+        await loadPatients(); // Reload the list and wait for it
+        console.log('[Patients] List reloaded');
+      } else {
+        console.error('[Patients] Failed to create patient:', response.error);
+        toast.error(response.error || 'Failed to add patient');
+      }
+    } catch (error) {
+      console.error('[Patients] Exception while adding patient:', error);
+      toast.error('Failed to add patient: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleEditPatient = (patient: any) => {
+  const handleEditPatient = (patient: Patient) => {
     setSelectedPatient(patient);
     setIsEditModalOpen(true);
   };
 
-  const handleViewPatient = (patient: any) => {
+  const handleViewPatient = (patient: Patient) => {
     setSelectedPatient(patient);
     setIsViewModalOpen(true);
   };
 
-  const handleDeletePatient = (patient: any) => {
+  const handleDeletePatient = (patient: Patient) => {
     setSelectedPatient(patient);
     setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!selectedPatient) return;
+
+    try {
+      console.log('[Patients] Deleting patient:', selectedPatient.id);
+      const response = await patientsApi.deletePatient(selectedPatient.id);
+      console.log('[Patients] Delete response:', response);
+
+      if (response.success) {
+        console.log('[Patients] Patient deleted successfully, reloading list...');
+        toast.success('Patient deleted successfully!');
+        setIsDeleteDialogOpen(false);
+        setSelectedPatient(null);
+        await loadPatients(); // Reload the list and wait for it
+        console.log('[Patients] List reloaded');
+      } else {
+        console.error('[Patients] Failed to delete patient:', response.error);
+        toast.error(response.error || 'Failed to delete patient');
+      }
+    } catch (error) {
+      console.error('[Patients] Exception while deleting patient:', error);
+      toast.error('Failed to delete patient');
+    }
   };
 
   const filteredPatients = patients.filter(patient => {
     const matchesSearch = 
       patient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      patient.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      patient.phone.toLowerCase().includes(searchQuery.toLowerCase());
+      (patient.email && patient.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (patient.phone && patient.phone.toLowerCase().includes(searchQuery.toLowerCase()));
     return matchesSearch;
   });
 
@@ -156,7 +245,7 @@ export default function PatientsPage() {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Average Age</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {Math.round(patients.reduce((sum, p) => sum + calculateAge(p.dateOfBirth), 0) / patients.length) || 0}
+                  {Math.round(patients.reduce((sum, p) => sum + (p.dateOfBirth ? calculateAge(p.dateOfBirth) : 0), 0) / patients.length) || 0}
                 </p>
               </div>
             </div>
@@ -229,11 +318,11 @@ export default function PatientsPage() {
                       <td className="py-3 px-4">
                         <div className="flex items-center">
                           <Calendar className="h-4 w-4 mr-2 text-gray-500" />
-                          <span className="text-gray-700">{calculateAge(patient.dateOfBirth)} years</span>
+                          <span className="text-gray-700">{patient.dateOfBirth ? calculateAge(patient.dateOfBirth) : 'N/A'} years</span>
                         </div>
                       </td>
                       <td className="py-3 px-4">
-                        <span className="text-gray-700">{formatDate(patient.dateOfBirth)}</span>
+                        <span className="text-gray-700">{patient.dateOfBirth ? formatDate(patient.dateOfBirth) : 'N/A'}</span>
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex items-center max-w-xs">
@@ -298,7 +387,7 @@ export default function PatientsPage() {
           <PatientForm
             onSubmit={handleSubmitPatient}
             onCancel={() => setIsAddModalOpen(false)}
-            isLoading={false}
+            isLoading={isSubmitting}
           />
         </Modal>
       )}
@@ -324,11 +413,11 @@ export default function PatientsPage() {
             </div>
             <div>
               <h3 className="font-medium text-gray-900">Date of Birth</h3>
-              <p className="text-gray-600">{formatDate(selectedPatient.dateOfBirth)}</p>
+              <p className="text-gray-600">{selectedPatient.dateOfBirth ? formatDate(selectedPatient.dateOfBirth) : 'N/A'}</p>
             </div>
             <div>
               <h3 className="font-medium text-gray-900">Age</h3>
-              <p className="text-gray-600">{calculateAge(selectedPatient.dateOfBirth)} years old</p>
+              <p className="text-gray-600">{selectedPatient.dateOfBirth ? calculateAge(selectedPatient.dateOfBirth) : 'N/A'} years old</p>
             </div>
             <div>
               <h3 className="font-medium text-gray-900">Address</h3>
@@ -385,10 +474,7 @@ export default function PatientsPage() {
         <ConfirmDialog
           isOpen={isDeleteDialogOpen}
           onClose={() => setIsDeleteDialogOpen(false)}
-          onConfirm={() => {
-            // Handle delete logic here
-            setIsDeleteDialogOpen(false);
-          }}
+          onConfirm={confirmDelete}
           title="Delete Patient"
           message={`Are you sure you want to delete ${selectedPatient.name}? This action cannot be undone.`}
         />
